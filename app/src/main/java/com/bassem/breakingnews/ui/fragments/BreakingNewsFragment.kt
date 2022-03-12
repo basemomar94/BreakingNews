@@ -1,4 +1,4 @@
-package com.bassem.newsapp.ui.fragments
+package com.bassem.breakingnews.ui.fragments
 
 import android.content.Context
 import android.os.Bundle
@@ -12,11 +12,11 @@ import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bassem.breakingnews.R
+import com.bassem.breakingnews.api.NewsApi
 import com.bassem.breakingnews.databinding.FragmentBreakingNewsBinding
 import com.bassem.newsapp.adapters.RecycleAdapter
 import com.bassem.newsapp.model.Article
 import com.bassem.newsapp.model.NewsResponse
-import com.bassem.newsapp.ui.viewmodels.BreakingNewsViewModel
 import com.google.gson.GsonBuilder
 import okhttp3.*
 import okhttp3.Call
@@ -33,12 +33,12 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
     lateinit var rvBreakingNews: RecyclerView
     lateinit var newsAdapter: RecycleAdapter
     lateinit var articleList: MutableList<Article>
-    lateinit var viewModel: ViewModel
+    val API_KEY = "e5095abc9bd84a259c6f0dba9a733416"
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this)[BreakingNewsViewModel::class.java]
     }
 
     override fun onCreateView(
@@ -55,56 +55,9 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
         articleList = arrayListOf()
 
         rvSetup(articleList, requireContext())
-        getData()
+        getNews()
     }
 
-    private fun getData() {
-        var list: MutableList<Article>? = null
-        val API_KEY = "e5095abc9bd84a259c6f0dba9a733416"
-        val url =
-            "https://newsapi.org/v2/top-headlines?country=eg&apiKey=$API_KEY"
-        val client = OkHttpClient()
-        val request = Request.Builder().url(url).get().build()
-        Thread(Runnable {
-            try {
-                client.newCall(request).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {
-                    }
-                    override fun onResponse(call: Call, response: Response) {
-                        var result: String? = null
-                        if (!response.isSuccessful) {
-                            println("${response.message}=========ERROR")
-                        } else {
-                            val responseBody: ResponseBody? = response.body
-                            if (responseBody != null) {
-                                result = responseBody.string()
-                            }
-                            val gson = GsonBuilder().create()
-                            val newsResponse = gson.fromJson(result, NewsResponse::class.java)
-                            list = newsResponse.articles as MutableList<Article>
-                            for (article in list!!) {
-                                articleList.add(article)
-                            }
-                            activity!!.runOnUiThread {
-
-                                binding?.shimmer?.apply {
-                                    visibility = View.GONE
-                                    stopShimmer()
-                                }
-                                binding?.rvBreakingNews?.visibility = View.VISIBLE
-
-                                newsAdapter.notifyDataSetChanged()
-                            }
-                        }
-                    }
-                })
-            } catch (E: Exception) {
-                println(E.message)
-            }
-        }).start()
-
-
-    }
 
     fun rvSetup(list: MutableList<Article>, context: Context) {
         newsAdapter = RecycleAdapter(list, context, this)
@@ -127,6 +80,34 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
         navController.navigate(R.id.action_breakingNewsFragment_to_itemArticle, bundle)
 
 
+    }
+    fun getNews() {
+        val call = NewsApi.create().getBreakingNews("eg", API_KEY)
+        call.enqueue(object : retrofit2.Callback<NewsResponse?> {
+            override fun onResponse(
+                call: retrofit2.Call<NewsResponse?>,
+                response: retrofit2.Response<NewsResponse?>
+            ) {
+                val newsList = response.body()?.articles
+                for (article in newsList!!) {
+                    articleList.add(article)
+                }
+
+                binding?.shimmer?.apply {
+                    visibility = View.GONE
+                    stopShimmer()
+                }
+                binding?.rvBreakingNews?.visibility = View.VISIBLE
+                newsAdapter.notifyDataSetChanged()
+
+
+
+            }
+
+            override fun onFailure(call: retrofit2.Call<NewsResponse?>, t: Throwable) {
+                println("$t ============error")
+            }
+        })
     }
 
 }

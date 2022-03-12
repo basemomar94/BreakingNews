@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/breakingNewsFragment"
-        android:name="com.bassem.newsapp.ui.fragments.BreakingNewsFragment"
+        android:name="com.bassem.breakingnews.ui.fragments.BreakingNewsFragment"
         android:label="fragment_breaking_news"
         tools:layout="@layout/fragment_breaking_news" >
         <action

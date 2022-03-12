@@ -1,16 +1,19 @@
 package com.bassem.newsapp.ui.fragments
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SearchView
+import androidx.annotation.RequiresApi
 import androidx.fragment.app.Fragment
 import androidx.navigation.Navigation
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bassem.breakingnews.R
+import com.bassem.breakingnews.api.NewsApi
 import com.bassem.breakingnews.databinding.FragmentSearchNewsBinding
 import com.bassem.newsapp.adapters.RecycleAdapter
 import com.bassem.newsapp.model.Article
@@ -19,6 +22,7 @@ import com.google.gson.GsonBuilder
 import okhttp3.*
 import java.io.IOException
 import java.lang.Exception
+import java.time.LocalDate
 
 class SearchNews : Fragment(R.layout.fragment_search_news), RecycleAdapter.OnclickListner {
     var _binding: FragmentSearchNewsBinding? = null
@@ -26,6 +30,7 @@ class SearchNews : Fragment(R.layout.fragment_search_news), RecycleAdapter.Oncli
     var searchRV: RecyclerView? = null
     var searchAdapter: RecycleAdapter? = null
     var newsList: MutableList<Article>? = null
+    val API_KEY = "e5095abc9bd84a259c6f0dba9a733416"
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,10 +52,11 @@ class SearchNews : Fragment(R.layout.fragment_search_news), RecycleAdapter.Oncli
         newsList = arrayListOf()
         recycleSetup(newsList!!, requireContext())
         binding!!.etSearch.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            @RequiresApi(Build.VERSION_CODES.O)
             override fun onQueryTextSubmit(p0: String?): Boolean {
-                binding?.shimmer?.visibility=View.VISIBLE
+                binding?.shimmer?.visibility = View.VISIBLE
                 newsList?.clear()
-                getData(p0!!)
+                getSearch(p0!!)
                 return true
             }
 
@@ -86,59 +92,31 @@ class SearchNews : Fragment(R.layout.fragment_search_news), RecycleAdapter.Oncli
 
     }
 
-    private fun getData(query: String) {
-        var list: MutableList<Article>? = null
-        val API_KEY = "e5095abc9bd84a259c6f0dba9a733416"
-        val url =
-            "https://newsapi.org/v2/everything?q=$query&from=2022-01-25&to=2022-01-25&sortBy=popularity&apiKey=$API_KEY"
-        val client = OkHttpClient()
-        val request = Request.Builder().url(url).get().build()
-        Thread(Runnable {
-            try {
-                client.newCall(request).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {
 
-                    }
-
-                    override fun onResponse(call: Call, response: Response) {
-                        var result: String? = null
-                        if (!response.isSuccessful) {
-                            println("${response.message}=========ERROR")
-                        } else {
-                            val responseBody: ResponseBody? = response.body
-                            if (responseBody != null) {
-                                result = responseBody.string()
-
-                            }
-
-                            val gson = GsonBuilder().create()
-                            val newsResponse = gson.fromJson(result, NewsResponse::class.java)
-                            list = newsResponse.articles as MutableList<Article>
-                            for (article in list!!) {
-                                newsList?.add(article)
-                            }
-                            println(newsList!!.size)
-                            activity!!.runOnUiThread {
-
-                                binding?.shimmer?.apply {
-                                    visibility = View.GONE
-                                    stopShimmer()
-                                }
-                                binding?.rvSearchNews?.visibility = View.VISIBLE
-
-                                searchAdapter?.notifyDataSetChanged()
-                            }
-
-
-                        }
-                    }
-                })
-            } catch (E: Exception) {
-                println(E.message)
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getSearch(search: String) {
+        val fromDate = LocalDate.now().minusMonths(1).toString()
+        val call = NewsApi.create().searchNews(search, fromDate, "popularity", API_KEY)
+        call.enqueue(object : retrofit2.Callback<NewsResponse?> {
+            override fun onResponse(
+                call: retrofit2.Call<NewsResponse?>,
+                response: retrofit2.Response<NewsResponse?>
+            ) {
+                val apiList = response.body()?.articles
+                for (article in apiList!!) {
+                    newsList?.add(article)
+                }
+                binding?.shimmer?.apply {
+                    visibility = View.GONE
+                    stopShimmer()
+                }
+                binding?.rvSearchNews?.visibility = View.VISIBLE
+                searchAdapter?.notifyDataSetChanged()
             }
-        }).start()
 
-
+            override fun onFailure(call: retrofit2.Call<NewsResponse?>, t: Throwable) {
+            }
+        })
     }
 
 
