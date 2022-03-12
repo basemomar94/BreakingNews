@@ -69,9 +69,7 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
             try {
                 client.newCall(request).enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
-
                     }
-
                     override fun onResponse(call: Call, response: Response) {
                         var result: String? = null
                         if (!response.isSuccessful) {
@@ -80,9 +78,7 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
                             val responseBody: ResponseBody? = response.body
                             if (responseBody != null) {
                                 result = responseBody.string()
-
                             }
-
                             val gson = GsonBuilder().create()
                             val newsResponse = gson.fromJson(result, NewsResponse::class.java)
                             list = newsResponse.articles as MutableList<Article>
@@ -99,8 +95,6 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
 
                                 newsAdapter.notifyDataSetChanged()
                             }
-
-
                         }
                     }
                 })
@@ -118,6 +112,7 @@ class BreakingNewsFragment : Fragment(R.layout.fragment_breaking_news),
         rvBreakingNews.setHasFixedSize(true)
         rvBreakingNews.layoutManager = LinearLayoutManager(context)
         rvBreakingNews.adapter = newsAdapter
+        println("tre")
     }
 
     override fun onClick(position: Int) {
